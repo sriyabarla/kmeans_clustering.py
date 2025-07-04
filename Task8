@@ -1,0 +1,58 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+
+# Load dataset
+df = pd.read_csv("Mall_Customers.csv")
+
+# Selecting features for clustering
+X = df[['Annual Income (k$)', 'Spending Score (1-100)']]
+
+# Standardize the data
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Elbow Method to find optimal k
+inertia = []
+k_range = range(1, 11)
+for k in k_range:
+    kmeans = KMeans(n_clusters=k, random_state=42)
+    kmeans.fit(X_scaled)
+    inertia.append(kmeans.inertia_)
+
+# Plot the Elbow Curve
+plt.figure(figsize=(8, 5))
+plt.plot(k_range, inertia, 'bo-')
+plt.xlabel('Number of clusters (k)')
+plt.ylabel('Inertia')
+plt.title('Elbow Method For Optimal k')
+plt.grid(True)
+plt.show()
+
+# Fit KMeans with optimal k (say 5 from elbow curve)
+optimal_k = 5
+kmeans = KMeans(n_clusters=optimal_k, random_state=42)
+cluster_labels = kmeans.fit_predict(X_scaled)
+
+# Add cluster labels to dataframe
+df['Cluster'] = cluster_labels
+
+# PCA for 2D Visualization
+pca = PCA(n_components=2)
+pca_data = pca.fit_transform(X_scaled)
+df['PCA1'] = pca_data[:, 0]
+df['PCA2'] = pca_data[:, 1]
+
+# Visualize Clusters
+plt.figure(figsize=(8, 6))
+sns.scatterplot(data=df, x='PCA1', y='PCA2', hue='Cluster', palette='Set2', s=100)
+plt.title("Customer Segments via K-Means (PCA Reduced)")
+plt.show()
+
+# Evaluate with Silhouette Score
+sil_score = silhouette_score(X_scaled, cluster_labels)
+print(f"Silhouette Score: {sil_score:.2f}")
